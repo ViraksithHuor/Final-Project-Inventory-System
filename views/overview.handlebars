@@ -1,0 +1,87 @@
+{{> page-header
+  eyebrow="Dashboard"
+  heading="Overview"
+  description="Quick summary of the current inventory status and aging assets."
+}}
+
+<section class="stats-grid">
+  <article class="stat-card">
+    <p>Total Assets</p>
+    <h3>248</h3>
+    <span>All tracked inventory items</span>
+  </article>
+
+  <article class="stat-card">
+    <p>Deployed Items</p>
+    <h3>163</h3>
+    <span>Currently assigned or in use</span>
+  </article>
+  <article class="stat-card">
+    <p>Available Items</p>
+    <h3>58</h3>
+    <span>Ready for future deployment</span>
+  </article>
+
+  <article class="stat-card warning">
+    <p>Older Than 3 Years</p>
+    <h3>27</h3>
+    <span>May need review or replacement</span>
+  </article>
+</section>
+
+<section class="content-grid two-column">
+  <div class="panel">
+    <div class="panel-header">
+      <h3>Inventory Summary</h3>
+      <span class="badge neutral">Mock Data</span>
+    </div>
+    
+    <div class="summary-list">
+      <div class="summary-row">
+        <span>Laptops</span>
+        <strong>102</strong>
+      </div>
+      <div class="summary-row">
+        <span>Desktops</span>
+        <strong>64</strong>
+      </div>
+      <div class="summary-row">
+        <span>Monitors</span>
+        <strong>49</strong>
+      </div>
+      <div class="summary-row">
+        <span>Servers</span>
+        <strong>11</strong>
+      </div>
+      <div class="summary-row">
+        <span>Other Peripherals</span>
+        <strong>22</strong>
+      </div>
+    </div>
+  </div>
+    <div class="panel">
+    <div class="panel-header">
+      <h3>Items Over 3 Years Old</h3>
+      <span class="badge warning">Attention</span>
+    </div>
+
+    <div class="aging-list">
+      <article class="aging-item">
+        <strong>LT-1007 · Dell Latitude 5400</strong>
+        <p>Acquired: 2021-01-14</p>
+      </article>
+      <article class="aging-item">
+        <strong>DT-2041 · HP ProDesk 600</strong>
+        <p>Acquired: 2020-11-03</p>
+      </article>
+      <article class="aging-item">
+        <strong>MN-3009 · Samsung Monitor</strong>
+        <p>Acquired: 2021-02-21</p>
+      </article>
+      <article class="aging-item">
+        <strong>SV-4012 · Lenovo ThinkSystem</strong>
+        <p>Acquired: 2020-08-18</p>
+      </article>
+    </div>
+  </div>
+</section>

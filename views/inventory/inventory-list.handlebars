@@ -1,0 +1,69 @@
+{{> page-header
+  eyebrow="Inventory"
+  heading="Inventory List"
+  description="View all assets and open each item for more details."
+  actionLabel="Add New Item"
+}}
+
+<section class="panel">
+  <div class="toolbar">
+    <input type="text" class="search-input" placeholder="Search by item ID, serial number, or model..." />
+    <select>
+      <option>All Categories</option>
+      <option>Laptop</option>
+      <option>Desktop</option>
+      <option>Server</option>
+      <option>Monitor</option>
+      <option>Keyboard</option>
+      <option>Other</option>
+    </select>
+    <select>
+      <option>All Status</option>
+      <option>Available</option>
+      <option>In-Use</option>
+      <option>Maintenance</option>
+      <option>Retired</option>
+    </select>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Item ID</th>
+          <th>Serial Number</th>
+          <th>Brand</th>
+          <th>Model</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>LT-1007</td>
+          <td>SN-AX12345</td>
+          <td>Dell</td>
+          <td>Latitude 5400</td>
+          <td><span class="badge success">Available</span></td>
+          <td><a href="/inventory/1" class="btn btn-sm">View Details</a></td>
+        </tr>
+        <tr>
+          <td>DT-2041</td>
+          <td>SN-HP55612</td>
+          <td>HP</td>
+          <td>ProDesk 600</td>
+          <td><span class="badge primary">In-Use</span></td>
+          <td><a href="/inventory/2" class="btn btn-sm">View Details</a></td>
+        </tr>
+        <tr>
+          <td>MN-3009</td>
+          <td>SN-SM90112</td>
+          <td>Samsung</td>
+          <td>24” Office Monitor</td>
+          <td><span class="badge warning">Maintenance</span></td>
+          <td><a href="/inventory/3" class="btn btn-sm">View Details</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

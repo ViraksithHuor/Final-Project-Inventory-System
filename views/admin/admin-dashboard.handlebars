@@ -1,0 +1,41 @@
+{{> page-header
+  eyebrow="Administration"
+  heading="Admin Dashboard"
+  description="Manage user accounts, permissions, and API access from one place."
+}}
+
+<section class="stats-grid compact">
+  <article class="stat-card">
+    <p>Total Users</p>
+    <h3>18</h3>
+  </article>
+  <article class="stat-card">
+    <p>Admins</p>
+    <h3>4</h3>
+  </article>
+  <article class="stat-card">
+    <p>Technicians</p>
+    <h3>14</h3>
+  </article>
+  <article class="stat-card">
+    <p>Active API Keys</p>
+    <h3>6</h3>
+  </article>
+</section>
+
+<section class="feature-grid">
+  <a href="/admin/create-user" class="feature-card">
+    <h3>Create New Account</h3>
+    <p>Add a new admin or technician account.</p>
+  </a>
+
+  <a href="/admin/users" class="feature-card">
+    <h3>User List</h3>
+    <p>View users, open details, and prepare edits.</p>
+  </a>
+
+  <a href="/admin/api-keys" class="feature-card">
+    <h3>API Key Section</h3>
+    <p>See active keys, create new keys, and revoke old ones.</p>
+  </a>
+</section>

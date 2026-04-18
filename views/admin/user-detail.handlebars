@@ -1,0 +1,58 @@
+{{> page-header
+  eyebrow="Administration"
+  heading="User Details"
+  description="Detailed information for one selected user."
+  actionLabel="Edit User"
+}}
+
+<section class="content-grid two-column">
+  <div class="panel">
+    <div class="detail-list">
+      <div class="detail-row">
+        <span>Username</span>
+        <strong>admin_main</strong>
+      </div>
+      <div class="detail-row">
+        <span>Email</span>
+        <strong>admin@company.com</strong>
+      </div>
+      <div class="detail-row">
+        <span>Role</span>
+        <strong>Admin</strong>
+      </div>
+      <div class="detail-row">
+        <span>Status</span>
+        <strong>Enabled</strong>
+      </div>
+      <div class="detail-row">
+        <span>Created At</span>
+        <strong>2026-04-10</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Prepared Edit Form</h3>
+    <form action="#" method="post" class="form-grid">
+      <div class="form-group">
+        <label for="detailRole">Role</label>
+        <select id="detailRole" name="role">
+          <option>Admin</option>
+          <option>Technician</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="isEnabled">Status</label>
+        <select id="isEnabled" name="isEnabled">
+          <option>Enabled</option>
+          <option>Disabled</option>
+        </select>
+      </div>
+
+      <div class="form-actions form-group--full">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</section>

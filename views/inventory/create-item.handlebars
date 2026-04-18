@@ -1,0 +1,61 @@
+{{> page-header
+  eyebrow="Inventory"
+  heading="Create New Item"
+  description="Add a new asset into the inventory system."
+}}
+
+<section class="panel form-panel">
+  <form action="#" method="post" class="form-grid">
+    <div class="form-group">
+      <label for="itemId">Item ID</label>
+      <input type="text" id="itemId" name="itemId" placeholder="e.g. LT-1008" />
+    </div>
+
+    <div class="form-group">
+      <label for="serialNumber">Serial Number</label>
+      <input type="text" id="serialNumber" name="serialNumber" placeholder="Enter serial number" />
+    </div>
+
+    <div class="form-group">
+      <label for="brand">Brand</label>
+      <input type="text" id="brand" name="brand" placeholder="e.g. Lenovo" />
+    </div>
+
+    <div class="form-group">
+      <label for="model">Model</label>
+      <input type="text" id="model" name="model" placeholder="e.g. ThinkPad E14" />
+    </div>
+
+    <div class="form-group">
+      <label for="category">Category</label>
+      <select id="category" name="category">
+        <option value="Laptop">Laptop</option>
+        <option value="Desktop">Desktop</option>
+        <option value="Server">Server</option>
+        <option value="Monitor">Monitor</option>
+        <option value="Keyboard">Keyboard</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="status">Status</label>
+      <select id="status" name="status">
+        <option value="Available">Available</option>
+        <option value="In-Use">In-Use</option>
+        <option value="Maintenance">Maintenance</option>
+        <option value="Retired">Retired</option>
+      </select>
+    </div>
+
+    <div class="form-group form-group--full">
+      <label for="dateAcquired">Date Acquired</label>
+      <input type="date" id="dateAcquired" name="dateAcquired" />
+    </div>
+
+    <div class="form-actions form-group--full">
+      <button type="submit" class="btn btn-primary">Create Item</button>
+      <button type="reset" class="btn btn-secondary">Clear</button>
+    </div>
+  </form>
+</section>

@@ -1,0 +1,42 @@
+{{> page-header
+  eyebrow="Administration"
+  heading="Create New Account"
+  description="Fill in the account information below. This is a UI skeleton only."
+}}
+
+<section class="panel form-panel narrow">
+  <form action="#" method="post" class="form-grid">
+    <div class="form-group">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" placeholder="e.g. david_admin" />
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" placeholder="e.g. admin@company.com" />
+    </div>
+
+    <div class="form-group">
+      <label for="password">Temporary Password</label>
+      <input type="password" id="password" name="password" placeholder="Enter password" />
+    </div>
+
+    <div class="form-group">
+      <label for="role">Role</label>
+      <select id="role" name="role">
+        <option value="Technician">Technician</option>
+        <option value="Admin">Admin</option>
+      </select>
+    </div>
+
+    <div class="form-group form-group--full">
+      <label for="notes">Notes</label>
+      <textarea id="notes" name="notes" rows="4" placeholder="Optional note for UI demonstration"></textarea>
+    </div>
+
+    <div class="form-actions form-group--full">
+      <button type="submit" class="btn btn-primary">Create Account</button>
+      <button type="reset" class="btn btn-secondary">Clear</button>
+    </div>
+  </form>
+</section>
