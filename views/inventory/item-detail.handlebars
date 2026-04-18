@@ -30,7 +30,7 @@
       </div>
       <div class="detail-row">
         <span>Status</span>
-        <strong>Available</strong>
+        <strong><span class="badge success">Available</span></strong>
       </div>
       <div class="detail-row">
         <span>Date Acquired</span>
@@ -38,6 +38,7 @@
       </div>
     </div>
   </div>
+
   <div class="panel">
     <h3>Prepared Edit Form</h3>
     <form action="#" method="post" class="form-grid">
@@ -75,6 +76,76 @@
 
       <div class="form-actions form-group--full">
         <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="content-grid two-column lower-sections">
+  <div class="panel">
+    <div class="panel-header">
+      <h3>Item History Log</h3>
+      <span class="badge neutral">UI Preview</span>
+    </div>
+
+    <div class="history-list">
+      <article class="history-item">
+        <div class="history-dot checkout"></div>
+        <div class="history-content">
+          <strong>Checked out to David Chan</strong>
+          <p>Date: 2026-04-10</p>
+          <p>Document: checkout-form-apr10.pdf</p>
+        </div>
+      </article>
+
+      <article class="history-item">
+        <div class="history-dot checkin"></div>
+        <div class="history-content">
+          <strong>Checked in from Sokha Lim</strong>
+          <p>Date: 2026-03-28</p>
+          <p>Document: return-inspection-mar28.pdf</p>
+        </div>
+      </article>
+
+      <article class="history-item">
+        <div class="history-dot checkout"></div>
+        <div class="history-content">
+          <strong>Checked out to Sokha Lim</strong>
+          <p>Date: 2026-02-14</p>
+          <p>Document: assignment-note-feb14.pdf</p>
+        </div>
+      </article>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h3>Check-in / Check-out</h3>
+      <span class="badge primary">Available</span>
+    </div>
+
+    <form action="#" method="post" enctype="multipart/form-data" class="stack-form">
+      <div class="form-group">
+        <label for="assignedUser">Select User</label>
+        <select id="assignedUser" name="userId">
+          <option selected disabled>Select a user</option>
+          <option>David Chan</option>
+          <option>Sokha Lim</option>
+          <option>Nary Phan</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="supportDoc">Upload Reference Document</label>
+        <input id="supportDoc" name="document" type="file" />
+      </div>
+
+      <div class="message-box info">
+        Since this item is currently <strong>Available</strong>, the main action is Check-out.
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Check-out Item</button>
       </div>
     </form>
   </div>
