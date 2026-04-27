@@ -7,24 +7,25 @@
 <section class="stats-grid">
   <article class="stat-card">
     <p>Total Assets</p>
-    <h3>248</h3>
+    <h3 id="totalAssets">0</h3>
     <span>All tracked inventory items</span>
   </article>
 
   <article class="stat-card">
     <p>Deployed Items</p>
-    <h3>163</h3>
+    <h3 id="deployedItems">0</h3>
     <span>Currently assigned or in use</span>
   </article>
+  
   <article class="stat-card">
     <p>Available Items</p>
-    <h3>58</h3>
+    <h3 id="availableItems">0</h3>
     <span>Ready for future deployment</span>
   </article>
-
+  
   <article class="stat-card warning">
     <p>Older Than 3 Years</p>
-    <h3>27</h3>
+    <h3 id="agingItems">0</h3>
     <span>May need review or replacement</span>
   </article>
 </section>
@@ -32,56 +33,91 @@
 <section class="content-grid two-column">
   <div class="panel">
     <div class="panel-header">
-      <h3>Inventory Summary</h3>
-      <span class="badge neutral">Mock Data</span>
+      <h3>Inventory Summary by Category</h3>
+      <span class="badge neutral">Live Data</span>
     </div>
     
-    <div class="summary-list">
-      <div class="summary-row">
-        <span>Laptops</span>
-        <strong>102</strong>
-      </div>
-      <div class="summary-row">
-        <span>Desktops</span>
-        <strong>64</strong>
-      </div>
-      <div class="summary-row">
-        <span>Monitors</span>
-        <strong>49</strong>
-      </div>
-      <div class="summary-row">
-        <span>Servers</span>
-        <strong>11</strong>
-      </div>
-      <div class="summary-row">
-        <span>Other Peripherals</span>
-        <strong>22</strong>
-      </div>
+    <div class="summary-list" id="categorySummary">
+      <p style="text-align: center; padding: 20px;">Loading inventory data...</p>
     </div>
   </div>
-    <div class="panel">
+  
+  <div class="panel">
     <div class="panel-header">
       <h3>Items Over 3 Years Old</h3>
       <span class="badge warning">Attention</span>
     </div>
 
-    <div class="aging-list">
-      <article class="aging-item">
-        <strong>LT-1007 · Dell Latitude 5400</strong>
-        <p>Acquired: 2021-01-14</p>
-      </article>
-      <article class="aging-item">
-        <strong>DT-2041 · HP ProDesk 600</strong>
-        <p>Acquired: 2020-11-03</p>
-      </article>
-      <article class="aging-item">
-        <strong>MN-3009 · Samsung Monitor</strong>
-        <p>Acquired: 2021-02-21</p>
-      </article>
-      <article class="aging-item">
-        <strong>SV-4012 · Lenovo ThinkSystem</strong>
-        <p>Acquired: 2020-08-18</p>
-      </article>
+    <div class="aging-list" id="agingItemsList">
+      <p style="text-align: center; padding: 20px;">Loading aging items...</p>
     </div>
   </div>
 </section>
+
+<script>
+  async function loadDashboardData() {
+    try {
+      if (!isAuthenticated()) {
+        throw new Error('You must be logged in');
+      }
+      
+      const items = await Items.list();
+      const itemsArray = Array.isArray(items) ? items : (items.items || []);
+      
+      // Calculate stats
+      const totalAssets = itemsArray.length;
+      const deployedItems = itemsArray.filter(i => i.status === 'In-Use').length;
+      const availableItems = itemsArray.filter(i => i.status === 'Available').length;
+      
+      // Calculate aging items (older than 3 years from today: April 27, 2026)
+      const threeYearsAgo = new Date();
+      threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+      const agingItems = itemsArray.filter(i => {
+        const acqDate = new Date(i.dateAcquired);
+        return acqDate < threeYearsAgo;
+      });
+      
+      // Update stat cards
+      document.getElementById('totalAssets').textContent = totalAssets;
+      document.getElementById('deployedItems').textContent = deployedItems;
+      document.getElementById('availableItems').textContent = availableItems;
+      document.getElementById('agingItems').textContent = agingItems.length;
+      
+      // Category summary
+      const categories = {};
+      itemsArray.forEach(item => {
+        const cat = item.category || 'Other';
+        categories[cat] = (categories[cat] || 0) + 1;
+      });
+      
+      const categorySummary = document.getElementById('categorySummary');
+      const categoryHtml = Object.entries(categories)
+        .map(([cat, count]) => `
+          <div class="summary-row">
+            <span>${cat}</span>
+            <strong>${count}</strong>
+          </div>
+        `).join('');
+      
+      categorySummary.innerHTML = categoryHtml || '<p style="text-align: center;">No data available</p>';
+      
+      // Aging items list
+      const agingList = document.getElementById('agingItemsList');
+      if (agingItems.length === 0) {
+        agingList.innerHTML = '<p style="text-align: center;">No aging items</p>';
+      } else {
+        agingList.innerHTML = agingItems.slice(0, 4).map(item => `
+          <article class="aging-item">
+            <strong>${item.itemId} · ${item.brand} ${item.model}</strong>
+            <p>Acquired: ${new Date(item.dateAcquired).toLocaleDateString()}</p>
+          </article>
+        `).join('');
+      }
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      handleError(error);
+    }
+  }
+  
+  loadDashboardData();
+</script>

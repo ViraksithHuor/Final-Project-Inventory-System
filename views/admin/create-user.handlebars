@@ -5,25 +5,25 @@
 }}
 
 <section class="panel form-panel narrow">
-  <form action="#" method="post" class="form-grid">
+  <form id="createUserForm" class="form-grid">
     <div class="form-group">
       <label for="username">Username</label>
-      <input type="text" id="username" name="username" placeholder="e.g. david_admin" />
+      <input type="text" id="username" name="username" placeholder="e.g. david_admin" required />
     </div>
 
     <div class="form-group">
       <label for="email">Email</label>
-      <input type="email" id="email" name="email" placeholder="e.g. admin@company.com" />
+      <input type="email" id="email" name="email" placeholder="e.g. admin@company.com" required />
     </div>
 
     <div class="form-group">
       <label for="password">Temporary Password</label>
-      <input type="password" id="password" name="password" placeholder="Enter password" />
+      <input type="password" id="password" name="password" placeholder="Enter password" required />
     </div>
 
     <div class="form-group">
       <label for="role">Role</label>
-      <select id="role" name="role">
+      <select id="role" name="role" required>
         <option value="Technician">Technician</option>
         <option value="Admin">Admin</option>
       </select>
@@ -40,3 +40,30 @@
     </div>
   </form>
 </section>
+
+<script>
+  document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const username = document.getElementById('username').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const role = document.getElementById('role').value;
+    
+    try {
+      if (!isAuthenticated()) {
+        throw new Error('You must be logged in to create a user');
+      }
+      
+      const response = await Users.create(username, email, password, role);
+      showMessage('User created successfully!', 'success');
+      document.getElementById('createUserForm').reset();
+      
+      setTimeout(() => {
+        window.location.href = '/admin/users';
+      }, 1500);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+</script>

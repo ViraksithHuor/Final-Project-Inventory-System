@@ -7,19 +7,19 @@
 <section class="stats-grid compact">
   <article class="stat-card">
     <p>Total Users</p>
-    <h3>18</h3>
+    <h3 id="totalUsers">0</h3>
   </article>
   <article class="stat-card">
     <p>Admins</p>
-    <h3>4</h3>
+    <h3 id="adminCount">0</h3>
   </article>
   <article class="stat-card">
     <p>Technicians</p>
-    <h3>14</h3>
+    <h3 id="technicianCount">0</h3>
   </article>
   <article class="stat-card">
     <p>Active API Keys</p>
-    <h3>6</h3>
+    <h3 id="apiKeyCount">0</h3>
   </article>
 </section>
 
@@ -39,3 +39,33 @@
     <p>See active keys, create new keys, and revoke old ones.</p>
   </a>
 </section>
+
+<script>
+  async function loadAdminDashboardData() {
+    try {
+      if (!isAuthenticated()) {
+        throw new Error('You must be logged in');
+      }
+      
+      const users = await Users.list();
+      const usersArray = Array.isArray(users) ? users : (users.users || []);
+      
+      const admins = usersArray.filter(u => u.role === 'Admin').length;
+      const technicians = usersArray.filter(u => u.role === 'Technician').length;
+      
+      document.getElementById('totalUsers').textContent = usersArray.length;
+      document.getElementById('adminCount').textContent = admins;
+      document.getElementById('technicianCount').textContent = technicians;
+      
+      const keys = await ApiKeys.list();
+      const keysArray = Array.isArray(keys) ? keys : (keys.apiKeys || []);
+      const activeKeys = keysArray.filter(k => k.isActive !== false).length;
+      document.getElementById('apiKeyCount').textContent = activeKeys;
+    } catch (error) {
+      console.error('Error loading admin dashboard data:', error);
+      handleError(error);
+    }
+  }
+  
+  loadAdminDashboardData();
+</script>

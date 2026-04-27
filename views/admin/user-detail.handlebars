@@ -7,46 +7,27 @@
 
 <section class="content-grid two-column">
   <div class="panel">
-    <div class="detail-list">
-      <div class="detail-row">
-        <span>Username</span>
-        <strong>admin_main</strong>
-      </div>
-      <div class="detail-row">
-        <span>Email</span>
-        <strong>admin@company.com</strong>
-      </div>
-      <div class="detail-row">
-        <span>Role</span>
-        <strong>Admin</strong>
-      </div>
-      <div class="detail-row">
-        <span>Status</span>
-        <strong>Enabled</strong>
-      </div>
-      <div class="detail-row">
-        <span>Created At</span>
-        <strong>2026-04-10</strong>
-      </div>
+    <div class="detail-list" id="userDetailsList">
+      <p style="text-align: center; padding: 20px;">Loading user details...</p>
     </div>
   </div>
 
   <div class="panel">
-    <h3>Prepared Edit Form</h3>
-    <form action="#" method="post" class="form-grid">
+    <h3>Edit User</h3>
+    <form id="editUserForm" class="form-grid">
       <div class="form-group">
         <label for="detailRole">Role</label>
-        <select id="detailRole" name="role">
-          <option>Admin</option>
-          <option>Technician</option>
+        <select id="detailRole" name="role" required>
+          <option value="Admin">Admin</option>
+          <option value="Technician">Technician</option>
         </select>
       </div>
 
       <div class="form-group">
         <label for="isEnabled">Status</label>
-        <select id="isEnabled" name="isEnabled">
-          <option>Enabled</option>
-          <option>Disabled</option>
+        <select id="isEnabled" name="isEnabled" required>
+          <option value="true">Enabled</option>
+          <option value="false">Disabled</option>
         </select>
       </div>
 
@@ -56,3 +37,86 @@
     </form>
   </div>
 </section>
+
+<script>
+  const userId = window.location.pathname.split('/').pop();
+  
+  async function loadUserDetails() {
+    try {
+      if (!isAuthenticated()) {
+        throw new Error('You must be logged in to view user details');
+      }
+      
+      // Note: Backend would need a GET /api/users/:id endpoint
+      // For now, we'll get the list and find the user
+      const usersList = await Users.list();
+      const user = usersList.find(u => u._id === userId);
+      
+      if (!user) {
+        document.getElementById('userDetailsList').innerHTML = 
+          '<p style="color: red; text-align: center;">User not found</p>';
+        return;
+      }
+      
+      renderUserDetails(user);
+      document.getElementById('detailRole').value = user.role;
+      document.getElementById('isEnabled').value = user.isEnabled.toString();
+    } catch (error) {
+      document.getElementById('userDetailsList').innerHTML = 
+        `<p style="color: red; text-align: center;">Error: ${error.message}</p>`;
+      handleError(error);
+    }
+  }
+  
+  function renderUserDetails(user) {
+    const detailsList = document.getElementById('userDetailsList');
+    detailsList.innerHTML = `
+      <div class="detail-row">
+        <span>Username</span>
+        <strong>${user.username}</strong>
+      </div>
+      <div class="detail-row">
+        <span>Email</span>
+        <strong>${user.email}</strong>
+      </div>
+      <div class="detail-row">
+        <span>Role</span>
+        <strong>${user.role}</strong>
+      </div>
+      <div class="detail-row">
+        <span>Status</span>
+        <strong>${user.isEnabled ? 'Enabled' : 'Disabled'}</strong>
+      </div>
+      <div class="detail-row">
+        <span>Created At</span>
+        <strong>${new Date(user.createdAt).toLocaleDateString()}</strong>
+      </div>
+    `;
+  }
+  
+  document.getElementById('editUserForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const role = document.getElementById('detailRole').value;
+    const isEnabled = document.getElementById('isEnabled').value === 'true';
+    
+    try {
+      if (!isAuthenticated()) {
+        throw new Error('You must be logged in to update a user');
+      }
+      
+      await Users.updateRole(userId, role);
+      await Users.updateStatus(userId, isEnabled);
+      
+      showMessage('User updated successfully!', 'success');
+      
+      setTimeout(() => {
+        window.location.href = '/admin/users';
+      }, 1500);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+  
+  loadUserDetails();
+</script>

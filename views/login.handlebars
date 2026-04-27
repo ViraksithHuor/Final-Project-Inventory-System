@@ -7,7 +7,7 @@
     </p>
   </div>
 
-  <form class="auth-form" action="#" method="post">
+  <form class="auth-form" id="loginForm">
     <div class="form-group">
       <label for="usernameOrEmail">Username or Email</label>
       <input
@@ -15,6 +15,7 @@
         id="usernameOrEmail"
         name="usernameOrEmail"
         placeholder="Enter username or email"
+        required
       />
     </div>
 
@@ -25,6 +26,7 @@
         id="password"
         name="password"
         placeholder="Enter password"
+        required
       />
     </div>
 
@@ -40,3 +42,23 @@
 
   </form>
 </section>
+
+<script>
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const usernameOrEmail = document.getElementById('usernameOrEmail').value;
+    const password = document.getElementById('password').value;
+    
+    try {
+      const response = await Auth.login(usernameOrEmail, password);
+      showMessage('Login successful! Redirecting...', 'success');
+      
+      setTimeout(() => {
+        window.location.href = '/overview';
+      }, 500);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+</script>

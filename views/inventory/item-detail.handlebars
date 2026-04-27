@@ -7,55 +7,28 @@
 
 <section class="content-grid two-column">
   <div class="panel">
-    <div class="detail-list">
-      <div class="detail-row">
-        <span>Item ID</span>
-        <strong>LT-1007</strong>
-      </div>
-      <div class="detail-row">
-        <span>Serial Number</span>
-        <strong>SN-AX12345</strong>
-      </div>
-      <div class="detail-row">
-        <span>Brand</span>
-        <strong>Dell</strong>
-      </div>
-      <div class="detail-row">
-        <span>Model</span>
-        <strong>Latitude 5400</strong>
-      </div>
-      <div class="detail-row">
-        <span>Category</span>
-        <strong>Laptop</strong>
-      </div>
-      <div class="detail-row">
-        <span>Status</span>
-        <strong><span class="badge success">Available</span></strong>
-      </div>
-      <div class="detail-row">
-        <span>Date Acquired</span>
-        <strong>2024-02-13</strong>
-      </div>
+    <div class="detail-list" id="itemDetailsList">
+      <p style="text-align: center; padding: 20px;">Loading item details...</p>
     </div>
   </div>
 
   <div class="panel">
-    <h3>Prepared Edit Form</h3>
-    <form action="#" method="post" class="form-grid">
+    <h3>Edit Item</h3>
+    <form id="editItemForm" class="form-grid">
       <div class="form-group">
         <label for="editBrand">Brand</label>
-        <input id="editBrand" name="brand" type="text" value="Dell" />
+        <input id="editBrand" name="brand" type="text" required />
       </div>
 
       <div class="form-group">
         <label for="editModel">Model</label>
-        <input id="editModel" name="model" type="text" value="Latitude 5400" />
+        <input id="editModel" name="model" type="text" required />
       </div>
 
       <div class="form-group">
         <label for="editCategory">Category</label>
-        <select id="editCategory" name="category">
-          <option selected>Laptop</option>
+        <select id="editCategory" name="category" required>
+          <option>Laptop</option>
           <option>Desktop</option>
           <option>Server</option>
           <option>Monitor</option>
@@ -66,8 +39,8 @@
 
       <div class="form-group">
         <label for="editStatus">Status</label>
-        <select id="editStatus" name="status">
-          <option selected>Available</option>
+        <select id="editStatus" name="status" required>
+          <option>Available</option>
           <option>In-Use</option>
           <option>Maintenance</option>
           <option>Retired</option>
@@ -85,53 +58,25 @@
   <div class="panel">
     <div class="panel-header">
       <h3>Item History Log</h3>
-      <span class="badge neutral">UI Preview</span>
+      <span class="badge neutral" id="historyBadge">Loading...</span>
     </div>
 
-    <div class="history-list">
-      <article class="history-item">
-        <div class="history-dot checkout"></div>
-        <div class="history-content">
-          <strong>Checked out to David Chan</strong>
-          <p>Date: 2026-04-10</p>
-          <p>Document: checkout-form-apr10.pdf</p>
-        </div>
-      </article>
-
-      <article class="history-item">
-        <div class="history-dot checkin"></div>
-        <div class="history-content">
-          <strong>Checked in from Sokha Lim</strong>
-          <p>Date: 2026-03-28</p>
-          <p>Document: return-inspection-mar28.pdf</p>
-        </div>
-      </article>
-
-      <article class="history-item">
-        <div class="history-dot checkout"></div>
-        <div class="history-content">
-          <strong>Checked out to Sokha Lim</strong>
-          <p>Date: 2026-02-14</p>
-          <p>Document: assignment-note-feb14.pdf</p>
-        </div>
-      </article>
+    <div class="history-list" id="historyList">
+      <p style="text-align: center; padding: 20px;">Loading history...</p>
     </div>
   </div>
 
   <div class="panel">
     <div class="panel-header">
       <h3>Check-in / Check-out</h3>
-      <span class="badge primary">Available</span>
+      <span class="badge primary" id="actionBadge">Loading...</span>
     </div>
 
-    <form action="#" method="post" enctype="multipart/form-data" class="stack-form">
+    <form id="checkoutCheckinForm" enctype="multipart/form-data" class="stack-form">
       <div class="form-group">
         <label for="assignedUser">Select User</label>
-        <select id="assignedUser" name="userId">
+        <select id="assignedUser" name="userId" required>
           <option selected disabled>Select a user</option>
-          <option>David Chan</option>
-          <option>Sokha Lim</option>
-          <option>Nary Phan</option>
         </select>
       </div>
 
@@ -140,13 +85,235 @@
         <input id="supportDoc" name="document" type="file" />
       </div>
 
-      <div class="message-box info">
-        Since this item is currently <strong>Available</strong>, the main action is Check-out.
+      <div class="message-box info" id="actionMessage">
+        Loading item status...
       </div>
 
       <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Check-out Item</button>
+        <button type="submit" class="btn btn-primary" id="checkoutCheckinBtn">Check-out Item</button>
       </div>
     </form>
   </div>
 </section>
+
+<script>
+  const itemId = window.location.pathname.split('/').pop();
+  let currentItem = null;
+  let allUsers = [];
+  
+  async function loadItemDetails() {
+    try {
+      if (!isAuthenticated()) {
+        throw new Error('You must be logged in to view item details');
+      }
+      
+      const itemsList = await Items.list();
+      currentItem = itemsList.find(i => i._id === itemId);
+      
+      if (!currentItem) {
+        document.getElementById('itemDetailsList').innerHTML = 
+          '<p style="color: red; text-align: center;">Item not found</p>';
+        return;
+      }
+      
+      renderItemDetails(currentItem);
+      document.getElementById('editBrand').value = currentItem.brand || '';
+      document.getElementById('editModel').value = currentItem.model || '';
+      document.getElementById('editCategory').value = currentItem.category || '';
+      document.getElementById('editStatus').value = currentItem.status || '';
+      
+      loadHistory();
+      loadUsers();
+      updateCheckoutCheckinUI();
+    } catch (error) {
+      document.getElementById('itemDetailsList').innerHTML = 
+        `<p style="color: red; text-align: center;">Error: ${error.message}</p>`;
+      handleError(error);
+    }
+  }
+  
+  function renderItemDetails(item) {
+    const detailsList = document.getElementById('itemDetailsList');
+    detailsList.innerHTML = `
+      <div class="detail-row">
+        <span>Item ID</span>
+        <strong>${item.itemId || 'N/A'}</strong>
+      </div>
+      <div class="detail-row">
+        <span>Serial Number</span>
+        <strong>${item.serialNumber || 'N/A'}</strong>
+      </div>
+      <div class="detail-row">
+        <span>Brand</span>
+        <strong>${item.brand || 'N/A'}</strong>
+      </div>
+      <div class="detail-row">
+        <span>Model</span>
+        <strong>${item.model || 'N/A'}</strong>
+      </div>
+      <div class="detail-row">
+        <span>Category</span>
+        <strong>${item.category || 'N/A'}</strong>
+      </div>
+      <div class="detail-row">
+        <span>Status</span>
+        <strong><span class="badge ${getStatusBadgeClass(item.status)}">${item.status || 'N/A'}</span></strong>
+      </div>
+      <div class="detail-row">
+        <span>Date Acquired</span>
+        <strong>${item.dateAcquired ? new Date(item.dateAcquired).toLocaleDateString() : 'N/A'}</strong>
+      </div>
+    `;
+  }
+  
+  function getStatusBadgeClass(status) {
+    switch(status) {
+      case 'Available': return 'success';
+      case 'In-Use': return 'primary';
+      case 'Maintenance': return 'warning';
+      case 'Retired': return 'muted';
+      default: return 'neutral';
+    }
+  }
+  
+  async function loadHistory() {
+    try {
+      const history = await Transactions.getHistory(itemId);
+      renderHistory(history);
+    } catch (error) {
+      document.getElementById('historyList').innerHTML = 
+        `<p style="color: red; text-align: center;">Error loading history</p>`;
+    }
+  }
+  
+  function renderHistory(history) {
+    const historyList = document.getElementById('historyList');
+    document.getElementById('historyBadge').textContent = `${history.length} Transactions`;
+    
+    if (history.length === 0) {
+      historyList.innerHTML = '<p style="text-align: center;">No transaction history</p>';
+      return;
+    }
+    
+    historyList.innerHTML = history.map(transaction => {
+      const isCheckout = transaction.type === 'checkout';
+      const dotClass = isCheckout ? 'checkout' : 'checkin';
+      const actionText = isCheckout ? 'Checked out to' : 'Checked in from';
+      const userName = transaction.user?.username || 'Unknown User';
+      const date = new Date(transaction.createdAt).toLocaleDateString();
+      
+      return `
+        <article class="history-item">
+          <div class="history-dot ${dotClass}"></div>
+          <div class="history-content">
+            <strong>${actionText} ${userName}</strong>
+            <p>Date: ${date}</p>
+            ${transaction.document ? `<p>Document: ${transaction.document}</p>` : ''}
+          </div>
+        </article>
+      `;
+    }).join('');
+  }
+  
+  async function loadUsers() {
+    try {
+      const usersList = await Users.list();
+      allUsers = Array.isArray(usersList) ? usersList : (usersList.users || []);
+      
+      const select = document.getElementById('assignedUser');
+      select.innerHTML = '<option selected disabled>Select a user</option>';
+      select.innerHTML += allUsers.map(user => 
+        `<option value="${user._id}">${user.username}</option>`
+      ).join('');
+    } catch (error) {
+      handleError(error);
+    }
+  }
+  
+  function updateCheckoutCheckinUI() {
+    const status = currentItem.status;
+    const badge = document.getElementById('actionBadge');
+    const message = document.getElementById('actionMessage');
+    const button = document.getElementById('checkoutCheckinBtn');
+    
+    if (status === 'Available') {
+      badge.textContent = 'Available';
+      badge.className = 'badge success';
+      message.innerHTML = 'Since this item is currently <strong>Available</strong>, the main action is Check-out.';
+      button.textContent = 'Check-out Item';
+    } else if (status === 'In-Use') {
+      badge.textContent = 'In-Use';
+      badge.className = 'badge primary';
+      message.innerHTML = 'Since this item is currently <strong>In-Use</strong>, the main action is Check-in.';
+      button.textContent = 'Check-in Item';
+    } else {
+      badge.textContent = status;
+      badge.className = 'badge muted';
+      message.innerHTML = `This item is currently <strong>${status}</strong> and cannot be checked in or out.`;
+      document.getElementById('checkoutCheckinForm').style.opacity = '0.5';
+      document.getElementById('checkoutCheckinForm').style.pointerEvents = 'none';
+    }
+  }
+  
+  document.getElementById('editItemForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const itemData = {
+      brand: document.getElementById('editBrand').value,
+      model: document.getElementById('editModel').value,
+      category: document.getElementById('editCategory').value,
+      status: document.getElementById('editStatus').value
+    };
+    
+    try {
+      if (!isAuthenticated()) {
+        throw new Error('You must be logged in to edit an item');
+      }
+      
+      await Items.update(itemId, itemData);
+      showMessage('Item updated successfully!', 'success');
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+  
+  document.getElementById('checkoutCheckinForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const userId = document.getElementById('assignedUser').value;
+    const fileInput = document.getElementById('supportDoc');
+    
+    try {
+      if (!isAuthenticated()) {
+        throw new Error('You must be logged in to perform checkout/checkin');
+      }
+      
+      if (!userId) {
+        throw new Error('Please select a user');
+      }
+      
+      const status = currentItem.status;
+      let response;
+      
+      if (status === 'Available') {
+        response = await Transactions.checkout(itemId, userId);
+        showMessage('Item checked out successfully!', 'success');
+      } else if (status === 'In-Use') {
+        response = await Transactions.checkin(itemId);
+        showMessage('Item checked in successfully!', 'success');
+      }
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+  
+  loadItemDetails();
+</script>

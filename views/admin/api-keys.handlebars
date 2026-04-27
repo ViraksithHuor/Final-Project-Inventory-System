@@ -8,10 +8,10 @@
 <section class="content-grid two-column">
   <div class="panel">
     <h3>Create New API Key</h3>
-    <form action="#" method="post" class="stack-form">
+    <form id="generateKeyForm" class="stack-form">
       <div class="form-group">
         <label for="keyLabel">Key Label</label>
-        <input type="text" id="keyLabel" name="keyLabel" placeholder="e.g. Monitoring Service" />
+        <input type="text" id="keyLabel" name="keyLabel" placeholder="e.g. Monitoring Service" required />
       </div>
 
       <div class="form-group">
@@ -19,44 +19,107 @@
         <textarea id="keyPurpose" name="keyPurpose" rows="4" placeholder="Describe what this key will be used for"></textarea>
       </div>
 
-       <button type="submit" class="btn btn-primary">Generate Key</button>
+      <button type="submit" class="btn btn-primary">Generate Key</button>
     </form>
 
-    <div class="message-box success">
-      Placeholder: generated raw key would be shown here once, after backend integration.
+    <div class="message-box success" id="successMessage" style="display: none; margin-top: 20px;">
+      <strong>API Key Generated!</strong>
+      <p>Copy this key now. You won't be able to see it again:</p>
+      <code id="generatedKey" style="display: block; word-break: break-all; padding: 10px; background: #f5f5f5; border-radius: 4px; margin-top: 10px;"></code>
     </div>
   </div>
 
   <div class="panel">
     <div class="panel-header">
       <h3>Active API Keys</h3>
-      <span class="badge neutral">6 Keys</span>
+      <span class="badge neutral" id="keyCountBadge">Loading...</span>
     </div>
 
-    <div class="key-list">
-      <article class="key-card">
-        <div>
-          <strong>Monitoring Service</strong>
-          <p>Created: 2026-04-01</p>
-        </div>
-        <button class="btn btn-danger btn-sm" type="button">Revoke</button>
-      </article>
-
-      <article class="key-card">
-        <div>
-          <strong>Inventory Sync</strong>
-          <p>Created: 2026-03-19</p>
-        </div>
-        <button class="btn btn-danger btn-sm" type="button">Revoke</button>
-      </article>
-
-      <article class="key-card">
-        <div>
-          <strong>Reporting Tool</strong>
-          <p>Created: 2026-03-10</p>
-        </div>
-        <button class="btn btn-danger btn-sm" type="button">Revoke</button>
-      </article>
+    <div class="key-list" id="keysList">
+      <p style="text-align: center; padding: 20px;">Loading API keys...</p>
     </div>
   </div>
 </section>
+
+<script>
+  async function loadApiKeys() {
+    try {
+      if (!isAuthenticated()) {
+        throw new Error('You must be logged in to manage API keys');
+      }
+      
+      const data = await ApiKeys.list();
+      const keys = Array.isArray(data) ? data : (data.apiKeys || []);
+      renderApiKeys(keys);
+    } catch (error) {
+      document.getElementById('keysList').innerHTML = 
+        `<p style="color: red; text-align: center;">Error loading API keys: ${error.message}</p>`;
+      handleError(error);
+    }
+  }
+  
+  function renderApiKeys(keys) {
+    const keysList = document.getElementById('keysList');
+    document.getElementById('keyCountBadge').textContent = `${keys.length} Keys`;
+    
+    if (keys.length === 0) {
+      keysList.innerHTML = '<p style="text-align: center;">No API keys yet</p>';
+      return;
+    }
+    
+    keysList.innerHTML = keys
+      .filter(key => key.isActive !== false)
+      .map(key => `
+        <article class="key-card">
+          <div>
+            <strong>${key.label || 'Unnamed Key'}</strong>
+            <p>Created: ${new Date(key.createdAt).toLocaleDateString()}</p>
+            ${key.purpose ? `<p style="font-size: 0.9em; color: #666;">${key.purpose}</p>` : ''}
+          </div>
+          <button class="btn btn-danger btn-sm" type="button" onclick="revokeKey('${key._id}')">Revoke</button>
+        </article>
+      `).join('');
+  }
+  
+  async function revokeKey(keyId) {
+    if (!confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      await ApiKeys.revoke(keyId);
+      showMessage('API key revoked successfully!', 'success');
+      loadApiKeys();
+    } catch (error) {
+      handleError(error);
+    }
+  }
+  
+  document.getElementById('generateKeyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const keyLabel = document.getElementById('keyLabel').value;
+    const keyPurpose = document.getElementById('keyPurpose').value;
+    
+    try {
+      if (!isAuthenticated()) {
+        throw new Error('You must be logged in to generate an API key');
+      }
+      
+      const response = await ApiKeys.generate(keyLabel, keyPurpose);
+      
+      document.getElementById('generatedKey').textContent = response.apiKey;
+      document.getElementById('successMessage').style.display = 'block';
+      
+      document.getElementById('generateKeyForm').reset();
+      
+      setTimeout(() => {
+        loadApiKeys();
+      }, 2000);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+  
+  loadApiKeys();
+</script>

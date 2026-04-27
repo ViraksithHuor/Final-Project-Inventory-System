@@ -7,16 +7,16 @@
 
 <section class="panel">
   <div class="toolbar">
-    <input type="text" class="search-input" placeholder="Search users..." />
-    <select>
-      <option>All Roles</option>
-      <option>Admin</option>
-      <option>Technician</option>
+    <input type="text" class="search-input" id="userSearch" placeholder="Search users..." />
+    <select id="roleFilter">
+      <option value="">All Roles</option>
+      <option value="Admin">Admin</option>
+      <option value="Technician">Technician</option>
     </select>
-    <select>
-      <option>All Status</option>
-      <option>Enabled</option>
-      <option>Disabled</option>
+    <select id="statusFilter">
+      <option value="">All Status</option>
+      <option value="true">Enabled</option>
+      <option value="false">Disabled</option>
     </select>
   </div>
 
@@ -31,29 +31,75 @@
           <th>Action</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="userTableBody">
         <tr>
-          <td>admin_main</td>
-          <td>admin@company.com</td>
-          <td><span class="badge primary">Admin</span></td>
-          <td><span class="badge success">Enabled</span></td>
-          <td><a href="/admin/users/1" class="btn btn-sm">View Details</a></td>
-        </tr>
-        <tr>
-          <td>david_tech</td>
-          <td>david@company.com</td>
-          <td><span class="badge neutral">Technician</span></td>
-          <td><span class="badge success">Enabled</span></td>
-          <td><a href="/admin/users/2" class="btn btn-sm">View Details</a></td>
-        </tr>
-        <tr>
-          <td>sokha_it</td>
-          <td>sokha@company.com</td>
-          <td><span class="badge neutral">Technician</span></td>
-          <td><span class="badge muted">Disabled</span></td>
-          <td><a href="/admin/users/3" class="btn btn-sm">View Details</a></td>
+          <td colspan="5" style="text-align: center; padding: 20px;">Loading users...</td>
         </tr>
       </tbody>
     </table>
   </div>
 </section>
+
+<script>
+  let allUsers = [];
+  
+  async function loadUsers() {
+    try {
+      if (!isAuthenticated()) {
+        throw new Error('You must be logged in to view users');
+      }
+      
+      const data = await Users.list();
+      allUsers = Array.isArray(data) ? data : (data.users || []);
+      renderUsers(allUsers);
+    } catch (error) {
+      document.getElementById('userTableBody').innerHTML = 
+        `<tr><td colspan="5" style="text-align: center; color: red;">Error loading users: ${error.message}</td></tr>`;
+      handleError(error);
+    }
+  }
+  
+  function renderUsers(users) {
+    const tbody = document.getElementById('userTableBody');
+    
+    if (users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No users found</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = users.map(user => `
+      <tr>
+        <td>${user.username}</td>
+        <td>${user.email}</td>
+        <td><span class="badge ${user.role === 'Admin' ? 'primary' : 'neutral'}">${user.role}</span></td>
+        <td><span class="badge ${user.isEnabled ? 'success' : 'muted'}">${user.isEnabled ? 'Enabled' : 'Disabled'}</span></td>
+        <td><a href="/admin/users/${user._id}" class="btn btn-sm">View Details</a></td>
+      </tr>
+    `).join('');
+  }
+  
+  function filterUsers() {
+    const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+    const roleFilter = document.getElementById('roleFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+    
+    let filtered = allUsers.filter(user => {
+      const matchesSearch = 
+        user.username.toLowerCase().includes(searchTerm) ||
+        user.email.toLowerCase().includes(searchTerm);
+      
+      const matchesRole = !roleFilter || user.role === roleFilter;
+      const matchesStatus = statusFilter === '' || user.isEnabled.toString() === statusFilter;
+      
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+    
+    renderUsers(filtered);
+  }
+  
+  document.getElementById('userSearch').addEventListener('input', filterUsers);
+  document.getElementById('roleFilter').addEventListener('change', filterUsers);
+  document.getElementById('statusFilter').addEventListener('change', filterUsers);
+  
+  loadUsers();
+</script>
