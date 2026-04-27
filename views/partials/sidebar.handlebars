@@ -9,16 +9,37 @@
 
   <nav class="sidebar-nav">
     <a href="/overview" class="nav-link {{#if navOverview}}active{{/if}}">Overview</a>
-    <a href="/admin" class="nav-link {{#if navAdmin}}active{{/if}}">Admin</a>
-    <a href="/admin/create-user" class="nav-link {{#if navCreateUser}}active{{/if}}">Create User</a>
-    <a href="/admin/users" class="nav-link {{#if navUsers}}active{{/if}}">User List</a>
-    <a href="/admin/api-keys" class="nav-link {{#if navApiKeys}}active{{/if}}">API Keys</a>
+
+    <a href="/admin" class="nav-link admin-only {{#if navAdmin}}active{{/if}}">Admin</a>
+    <a href="/admin/create-user" class="nav-link admin-only {{#if navCreateUser}}active{{/if}}">Create User</a>
+    <a href="/admin/users" class="nav-link admin-only {{#if navUsers}}active{{/if}}">User List</a>
+    <a href="/admin/api-keys" class="nav-link admin-only {{#if navApiKeys}}active{{/if}}">API Keys</a>
+
     <a href="/inventory" class="nav-link {{#if navInventory}}active{{/if}}">Inventory</a>
     <a href="/inventory/create" class="nav-link {{#if navCreateItem}}active{{/if}}">Create Item</a>
   </nav>
 
-  <div class="sidebar-footer">
-    <p>UI Skeleton Only</p>
-    <small>Backend integration later</small>
-  </div>
 </aside>
+
+<script>
+  function getCurrentUser() {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      return null;
+    }
+  }
+
+  function isAdmin() {
+    const user = getCurrentUser();
+    return user && user.role === 'Admin';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!isAdmin()) {
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.style.display = 'none';
+      });
+    }
+  });
+</script>

@@ -1,37 +1,32 @@
 {{> page-header
   eyebrow="Administration"
   heading="Create New Account"
-  description="Fill in the account information below. This is a UI skeleton only."
+  description="Create a new admin or technician account."
 }}
 
 <section class="panel form-panel narrow">
-  <form action="#" method="post" class="form-grid">
+  <form id="createUserForm" class="form-grid">
     <div class="form-group">
       <label for="username">Username</label>
-      <input type="text" id="username" name="username" placeholder="e.g. david_admin" />
+      <input type="text" id="username" name="username" placeholder="e.g. david_admin" required />
     </div>
 
     <div class="form-group">
       <label for="email">Email</label>
-      <input type="email" id="email" name="email" placeholder="e.g. admin@company.com" />
+      <input type="email" id="email" name="email" placeholder="e.g. admin@company.com" required />
     </div>
 
     <div class="form-group">
-      <label for="password">Temporary Password</label>
-      <input type="password" id="password" name="password" placeholder="Enter password" />
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="Enter password" required />
     </div>
 
     <div class="form-group">
       <label for="role">Role</label>
-      <select id="role" name="role">
+      <select id="role" name="role" required>
         <option value="Technician">Technician</option>
         <option value="Admin">Admin</option>
       </select>
-    </div>
-
-    <div class="form-group form-group--full">
-      <label for="notes">Notes</label>
-      <textarea id="notes" name="notes" rows="4" placeholder="Optional note for UI demonstration"></textarea>
     </div>
 
     <div class="form-actions form-group--full">
@@ -40,3 +35,52 @@
     </div>
   </form>
 </section>
+
+<script>
+  function isAuthenticated() {
+    return !!localStorage.getItem('token');
+  }
+
+  document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const token = localStorage.getItem('token');
+
+    const body = {
+      username: document.getElementById('username').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value,
+      role: document.getElementById('role').value
+    };
+
+    try {
+      if (!token) {
+        throw new Error('You must be logged in to create a user');
+      }
+
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create user');
+      }
+
+      showMessage('User created successfully!', 'success');
+      document.getElementById('createUserForm').reset();
+
+      setTimeout(() => {
+        window.location.href = '/admin/users';
+      }, 1000);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+</script>

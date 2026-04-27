@@ -6,44 +6,10 @@ const User = require('../models/User');
 const router = express.Router();
 const SALT_ROUNDS = 10;
 
-router.post('/register', async (req, res) => {
-  try {
-    const { username, email, password, role } = req.body;
-
-    if (!username || !email || !password) {
-      return res.status(400).json({ message: 'Username, email, and password are required.' });
-    }
-
-    const existingUser = await User.findOne({
-      $or: [{ username }, { email }]
-    });
-
-    if (existingUser) {
-      return res.status(409).json({ message: 'Username or email already exists.' });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-
-    const user = await User.create({
-      username,
-      email,
-      password: hashedPassword,
-      role: role || 'Technician'
-    });
-
-    res.status(201).json({
-      message: 'User created successfully.',
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        isEnabled: user.isEnabled
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error.', error: error.message });
-  }
+router.post('/register', (req, res) => {
+  res.status(403).json({
+    message: 'Public registration is disabled. Admins must create users through /api/users.'
+  });
 });
 
 router.post('/login', async (req, res) => {
@@ -85,6 +51,13 @@ router.post('/login', async (req, res) => {
       { expiresIn: '1d' }
     );
 
+    res.cookie('token', token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000
+    });
+
     res.json({
       message: 'Login successful.',
       token,
@@ -98,6 +71,17 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Server error.', error: error.message });
   }
+});
+
+router.post('/logout', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/'
+  });
+
+  res.json({ message: 'Logged out successfully' });
 });
 
 module.exports = router;

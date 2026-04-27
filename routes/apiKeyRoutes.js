@@ -11,6 +11,8 @@ const router = express.Router();
 // GENERATE KEY
 router.post('/', authenticate, authorizeRole('Admin'), async (req, res) => {
   try {
+    const { label, purpose } = req.body;
+
     const rawKey = crypto.randomBytes(32).toString('hex');
 
     const hashedKey = crypto
@@ -18,11 +20,22 @@ router.post('/', authenticate, authorizeRole('Admin'), async (req, res) => {
       .update(rawKey)
       .digest('hex');
 
-    await ApiKey.create({ key: hashedKey });
+    const apiKey = await ApiKey.create({
+      key: hashedKey,
+      label: label || 'Unnamed Key',
+      purpose: purpose || ''
+    });
 
     res.json({
       message: 'API key generated',
-      apiKey: rawKey // show once
+      apiKey: rawKey, // show once
+      keyRecord: {
+        id: apiKey._id,
+        label: apiKey.label,
+        purpose: apiKey.purpose,
+        isActive: apiKey.isActive,
+        createdAt: apiKey.createdAt
+      }
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -32,15 +45,32 @@ router.post('/', authenticate, authorizeRole('Admin'), async (req, res) => {
 
 // LIST KEYS
 router.get('/', authenticate, authorizeRole('Admin'), async (req, res) => {
-  const keys = await ApiKey.find();
-  res.json(keys);
+  try {
+    const keys = await ApiKey.find().sort({ createdAt: -1 });
+    res.json(keys);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 
 // REVOKE KEY
 router.delete('/:id', authenticate, authorizeRole('Admin'), async (req, res) => {
-  await ApiKey.findByIdAndUpdate(req.params.id, { isActive: false });
-  res.json({ message: 'API key revoked' });
+  try {
+    const key = await ApiKey.findByIdAndUpdate(
+      req.params.id,
+      { isActive: false },
+      { new: true }
+    );
+
+    if (!key) {
+      return res.status(404).json({ message: 'API key not found' });
+    }
+
+    res.json({ message: 'API key revoked' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 module.exports = router;

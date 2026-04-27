@@ -5,12 +5,51 @@
   </div>
 
   <div class="topbar-actions">
-    <div class="user-chip">
-      <div class="user-avatar">A</div>
+    <div class="user-chip" id="userChip">
+      <div class="user-avatar" id="userAvatar">-</div>
       <div>
-        <strong>Admin User</strong>
-        <p>UI Preview</p>
+        <strong id="userName">Loading...</strong>
+        <p id="userRole">UI</p>
       </div>
     </div>
+    <button class="btn btn-secondary btn-sm" onclick="logout()" style="margin-left: 20px;">Logout</button>
   </div>
 </header>
+
+<script>
+  function loadUserInfo() {
+    const token = localStorage.getItem('token');
+
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+
+        document.getElementById('userName').textContent = payload.username || 'User';
+        document.getElementById('userRole').textContent = payload.role || 'User';
+        document.getElementById('userAvatar').textContent = (payload.username || 'U')[0].toUpperCase();
+      } catch (e) {
+        console.error('Error parsing token:', e);
+      }
+    } else {
+      window.location.href = '/login';
+    }
+  }
+
+  async function logout() {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (e) {
+      console.error('Logout request failed:', e);
+    }
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+
+    window.location.href = '/login';
+  }
+
+  loadUserInfo();
+</script>

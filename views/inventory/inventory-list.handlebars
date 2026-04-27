@@ -3,26 +3,27 @@
   heading="Inventory List"
   description="View all assets and open each item for more details."
   actionLabel="Add New Item"
+  actionHref="/inventory/create"
 }}
 
 <section class="panel">
   <div class="toolbar">
-    <input type="text" class="search-input" placeholder="Search by item ID, serial number, or model..." />
-    <select>
-      <option>All Categories</option>
-      <option>Laptop</option>
-      <option>Desktop</option>
-      <option>Server</option>
-      <option>Monitor</option>
-      <option>Keyboard</option>
-      <option>Other</option>
+    <input type="text" class="search-input" id="itemSearch" placeholder="Search by item ID, serial number, or model..." />
+    <select id="categoryFilter">
+      <option value="">All Categories</option>
+      <option value="Laptop">Laptop</option>
+      <option value="Desktop">Desktop</option>
+      <option value="Server">Server</option>
+      <option value="Monitor">Monitor</option>
+      <option value="Keyboard">Keyboard</option>
+      <option value="Other">Other</option>
     </select>
-    <select>
-      <option>All Status</option>
-      <option>Available</option>
-      <option>In-Use</option>
-      <option>Maintenance</option>
-      <option>Retired</option>
+    <select id="statusFilter">
+      <option value="">All Status</option>
+      <option value="Available">Available</option>
+      <option value="In-Use">In-Use</option>
+      <option value="Maintenance">Maintenance</option>
+      <option value="Retired">Retired</option>
     </select>
   </div>
 
@@ -38,32 +39,108 @@
           <th>Action</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="itemTableBody">
         <tr>
-          <td>LT-1007</td>
-          <td>SN-AX12345</td>
-          <td>Dell</td>
-          <td>Latitude 5400</td>
-          <td><span class="badge success">Available</span></td>
-          <td><a href="/inventory/1" class="btn btn-sm">View Details</a></td>
-        </tr>
-        <tr>
-          <td>DT-2041</td>
-          <td>SN-HP55612</td>
-          <td>HP</td>
-          <td>ProDesk 600</td>
-          <td><span class="badge primary">In-Use</span></td>
-          <td><a href="/inventory/2" class="btn btn-sm">View Details</a></td>
-        </tr>
-        <tr>
-          <td>MN-3009</td>
-          <td>SN-SM90112</td>
-          <td>Samsung</td>
-          <td>24” Office Monitor</td>
-          <td><span class="badge warning">Maintenance</span></td>
-          <td><a href="/inventory/3" class="btn btn-sm">View Details</a></td>
+          <td colspan="6" style="text-align: center; padding: 20px;">Loading items...</td>
         </tr>
       </tbody>
     </table>
   </div>
 </section>
+
+<script>
+  function getToken() {
+    return localStorage.getItem('token');
+  }
+
+  async function apiRequest(url) {
+    const token = getToken();
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Request failed');
+    }
+
+    return data;
+  }
+
+  let allItems = [];
+  
+  async function loadItems() {
+    try {
+      const data = await apiRequest('/api/items');
+      allItems = Array.isArray(data) ? data : (data.items || []);
+      renderItems(allItems);
+    } catch (error) {
+      document.getElementById('itemTableBody').innerHTML = 
+        `<tr><td colspan="6" style="text-align: center; color: red;">Error loading items: ${error.message}</td></tr>`;
+      
+      if (typeof handleError === 'function') {
+        handleError(error);
+      }
+    }
+  }
+  
+  function getStatusBadgeClass(status) {
+    switch(status) {
+      case 'Available': return 'success';
+      case 'In-Use': return 'primary';
+      case 'Maintenance': return 'warning';
+      case 'Retired': return 'muted';
+      default: return 'neutral';
+    }
+  }
+  
+  function renderItems(items) {
+    const tbody = document.getElementById('itemTableBody');
+    
+    if (items.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No items found</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = items.map(item => `
+      <tr>
+        <td>${item.itemId || 'N/A'}</td>
+        <td>${item.serialNumber || 'N/A'}</td>
+        <td>${item.brand || 'N/A'}</td>
+        <td>${item.model || 'N/A'}</td>
+        <td><span class="badge ${getStatusBadgeClass(item.status)}">${item.status || 'N/A'}</span></td>
+        <td><a href="/inventory/${item._id}" class="btn btn-sm">View Details</a></td>
+      </tr>
+    `).join('');
+  }
+  
+  function filterItems() {
+    const searchTerm = document.getElementById('itemSearch').value.toLowerCase();
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+    
+    let filtered = allItems.filter(item => {
+      const matchesSearch = 
+        (item.itemId || '').toLowerCase().includes(searchTerm) ||
+        (item.serialNumber || '').toLowerCase().includes(searchTerm) ||
+        (item.model || '').toLowerCase().includes(searchTerm);
+      
+      const matchesCategory = !categoryFilter || item.category === categoryFilter;
+      const matchesStatus = !statusFilter || item.status === statusFilter;
+      
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+    
+    renderItems(filtered);
+  }
+  
+  document.getElementById('itemSearch').addEventListener('input', filterItems);
+  document.getElementById('categoryFilter').addEventListener('change', filterItems);
+  document.getElementById('statusFilter').addEventListener('change', filterItems);
+  
+  loadItems();
+</script>

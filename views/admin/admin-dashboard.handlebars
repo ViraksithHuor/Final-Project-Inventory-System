@@ -7,19 +7,19 @@
 <section class="stats-grid compact">
   <article class="stat-card">
     <p>Total Users</p>
-    <h3>18</h3>
+    <h3 id="totalUsers">0</h3>
   </article>
   <article class="stat-card">
     <p>Admins</p>
-    <h3>4</h3>
+    <h3 id="adminCount">0</h3>
   </article>
   <article class="stat-card">
     <p>Technicians</p>
-    <h3>14</h3>
+    <h3 id="technicianCount">0</h3>
   </article>
   <article class="stat-card">
     <p>Active API Keys</p>
-    <h3>6</h3>
+    <h3 id="apiKeyCount">0</h3>
   </article>
 </section>
 
@@ -39,3 +39,62 @@
     <p>See active keys, create new keys, and revoke old ones.</p>
   </a>
 </section>
+
+<script>
+  function isAuthenticated() {
+    return !!localStorage.getItem('token');
+  }
+
+  async function fetchWithToken(url) {
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  async function loadAdminDashboardData() {
+    try {
+      if (!isAuthenticated()) {
+        throw new Error('You must be logged in');
+      }
+
+      const users = await fetchWithToken('/api/users');
+      const usersArray = Array.isArray(users) ? users : (users.users || []);
+
+      const admins = usersArray.filter(u => u.role === 'Admin').length;
+      const technicians = usersArray.filter(u => u.role === 'Technician').length;
+
+      document.getElementById('totalUsers').textContent = usersArray.length;
+      document.getElementById('adminCount').textContent = admins;
+      document.getElementById('technicianCount').textContent = technicians;
+
+      const keys = await fetchWithToken('/api/keys');
+      const keysArray = Array.isArray(keys) ? keys : (keys.apiKeys || []);
+
+      const activeKeys = keysArray.filter(k => k.isActive !== false).length;
+      document.getElementById('apiKeyCount').textContent = activeKeys;
+    } catch (error) {
+      console.error('Error loading admin dashboard data:', error);
+
+      document.getElementById('totalUsers').textContent = '—';
+      document.getElementById('adminCount').textContent = '—';
+      document.getElementById('technicianCount').textContent = '—';
+      document.getElementById('apiKeyCount').textContent = '—';
+
+      if (typeof handleError === 'function') {
+        handleError(error);
+      }
+    }
+  }
+
+  loadAdminDashboardData();
+</script>

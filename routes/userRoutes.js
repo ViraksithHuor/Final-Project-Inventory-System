@@ -40,6 +40,16 @@ router.post('/', authenticate, authorizeRole('Admin'), async (req, res) => {
   }
 });
 
+// LIST USERS (Admin only)
+router.get('/', authenticate, authorizeRole('Admin'), async (req, res) => {
+  try {
+    const users = await User.find({}, '-password'); // exclude password
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // UPDATE ROLE (Admin only)
 router.patch('/:id/role', authenticate, authorizeRole('Admin'), async (req, res) => {
   try {
