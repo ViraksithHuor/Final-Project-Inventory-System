@@ -55,69 +55,103 @@
 </section>
 
 <script>
+  function isAuthenticated() {
+    return !!localStorage.getItem('token');
+  }
+
+  async function apiRequest(url, options = {}) {
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Request failed');
+    }
+
+    return data;
+  }
+
   async function loadDashboardData() {
     try {
       if (!isAuthenticated()) {
         throw new Error('You must be logged in');
       }
-      
-      const items = await Items.list();
+
+      const items = await apiRequest('/api/items');
       const itemsArray = Array.isArray(items) ? items : (items.items || []);
-      
-      // Calculate stats
+
       const totalAssets = itemsArray.length;
       const deployedItems = itemsArray.filter(i => i.status === 'In-Use').length;
       const availableItems = itemsArray.filter(i => i.status === 'Available').length;
-      
-      // Calculate aging items (older than 3 years from today: April 27, 2026)
+
       const threeYearsAgo = new Date();
       threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+
       const agingItems = itemsArray.filter(i => {
+        if (!i.dateAcquired) return false;
         const acqDate = new Date(i.dateAcquired);
         return acqDate < threeYearsAgo;
       });
-      
-      // Update stat cards
+
       document.getElementById('totalAssets').textContent = totalAssets;
       document.getElementById('deployedItems').textContent = deployedItems;
       document.getElementById('availableItems').textContent = availableItems;
       document.getElementById('agingItems').textContent = agingItems.length;
-      
-      // Category summary
+
       const categories = {};
+
       itemsArray.forEach(item => {
         const cat = item.category || 'Other';
         categories[cat] = (categories[cat] || 0) + 1;
       });
-      
+
       const categorySummary = document.getElementById('categorySummary');
+
       const categoryHtml = Object.entries(categories)
         .map(([cat, count]) => `
           <div class="summary-row">
             <span>${cat}</span>
             <strong>${count}</strong>
           </div>
-        `).join('');
-      
+        `)
+        .join('');
+
       categorySummary.innerHTML = categoryHtml || '<p style="text-align: center;">No data available</p>';
-      
-      // Aging items list
+
       const agingList = document.getElementById('agingItemsList');
+
       if (agingItems.length === 0) {
         agingList.innerHTML = '<p style="text-align: center;">No aging items</p>';
       } else {
         agingList.innerHTML = agingItems.slice(0, 4).map(item => `
           <article class="aging-item">
-            <strong>${item.itemId} · ${item.brand} ${item.model}</strong>
+            <strong>${item.itemId || 'N/A'} · ${item.brand || ''} ${item.model || ''}</strong>
             <p>Acquired: ${new Date(item.dateAcquired).toLocaleDateString()}</p>
           </article>
         `).join('');
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      handleError(error);
+
+      document.getElementById('categorySummary').innerHTML =
+        `<p style="color: red; text-align: center;">Error loading inventory data: ${error.message}</p>`;
+
+      document.getElementById('agingItemsList').innerHTML =
+        `<p style="color: red; text-align: center;">Error loading aging items</p>`;
+
+      if (typeof handleError === 'function') {
+        handleError(error);
+      }
     }
   }
-  
+
   loadDashboardData();
 </script>

@@ -43,7 +43,6 @@
       <label for="status">Status</label>
       <select id="status" name="status" required>
         <option value="Available">Available</option>
-        <option value="In-Use">In-Use</option>
         <option value="Maintenance">Maintenance</option>
         <option value="Retired">Retired</option>
       </select>
@@ -62,31 +61,51 @@
 </section>
 
 <script>
+  function isAuthenticated() {
+    return !!localStorage.getItem('token');
+  }
+
   document.getElementById('createItemForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
+    const token = localStorage.getItem('token');
+
     const itemData = {
-      itemId: document.getElementById('itemId').value,
-      serialNumber: document.getElementById('serialNumber').value,
-      brand: document.getElementById('brand').value,
-      model: document.getElementById('model').value,
+      itemId: document.getElementById('itemId').value.trim(),
+      serialNumber: document.getElementById('serialNumber').value.trim(),
+      brand: document.getElementById('brand').value.trim(),
+      model: document.getElementById('model').value.trim(),
       category: document.getElementById('category').value,
       status: document.getElementById('status').value,
       dateAcquired: document.getElementById('dateAcquired').value
     };
-    
+
     try {
       if (!isAuthenticated()) {
         throw new Error('You must be logged in to create an item');
       }
-      
-      const response = await Items.create(itemData);
+
+      const response = await fetch('/api/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(itemData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create item');
+      }
+
       showMessage('Item created successfully!', 'success');
       document.getElementById('createItemForm').reset();
-      
+
       setTimeout(() => {
         window.location.href = '/inventory';
-      }, 1500);
+      }, 1000);
     } catch (error) {
       handleError(error);
     }

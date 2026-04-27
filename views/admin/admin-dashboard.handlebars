@@ -41,31 +41,60 @@
 </section>
 
 <script>
+  function isAuthenticated() {
+    return !!localStorage.getItem('token');
+  }
+
+  async function fetchWithToken(url) {
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
   async function loadAdminDashboardData() {
     try {
       if (!isAuthenticated()) {
         throw new Error('You must be logged in');
       }
-      
-      const users = await Users.list();
+
+      const users = await fetchWithToken('/api/users');
       const usersArray = Array.isArray(users) ? users : (users.users || []);
-      
+
       const admins = usersArray.filter(u => u.role === 'Admin').length;
       const technicians = usersArray.filter(u => u.role === 'Technician').length;
-      
+
       document.getElementById('totalUsers').textContent = usersArray.length;
       document.getElementById('adminCount').textContent = admins;
       document.getElementById('technicianCount').textContent = technicians;
-      
-      const keys = await ApiKeys.list();
+
+      const keys = await fetchWithToken('/api/keys');
       const keysArray = Array.isArray(keys) ? keys : (keys.apiKeys || []);
+
       const activeKeys = keysArray.filter(k => k.isActive !== false).length;
       document.getElementById('apiKeyCount').textContent = activeKeys;
     } catch (error) {
       console.error('Error loading admin dashboard data:', error);
-      handleError(error);
+
+      document.getElementById('totalUsers').textContent = '—';
+      document.getElementById('adminCount').textContent = '—';
+      document.getElementById('technicianCount').textContent = '—';
+      document.getElementById('apiKeyCount').textContent = '—';
+
+      if (typeof handleError === 'function') {
+        handleError(error);
+      }
     }
   }
-  
+
   loadAdminDashboardData();
 </script>

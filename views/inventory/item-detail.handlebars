@@ -49,6 +49,9 @@
 
       <div class="form-actions form-group--full">
         <button type="submit" class="btn btn-primary">Save Changes</button>
+        <button type="button" class="btn btn-danger" id="deleteItemBtn" style="display: none;">
+          Delete Item
+        </button>
       </div>
     </form>
   </div>
@@ -100,40 +103,108 @@
   const itemId = window.location.pathname.split('/').pop();
   let currentItem = null;
   let allUsers = [];
-  
+
+  function getCurrentUser() {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      return null;
+    }
+  }
+
+  function isAdmin() {
+    const user = getCurrentUser();
+
+    if (user && user.role === 'Admin') {
+      return true;
+    }
+
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      return false;
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.role === 'Admin';
+    } catch {
+      return false;
+    }
+  }
+
+  function isAuthenticated() {
+    return !!localStorage.getItem('token');
+  }
+
+  async function apiRequest(url, options = {}) {
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Request failed');
+    }
+
+    return data;
+  }
+
   async function loadItemDetails() {
     try {
       if (!isAuthenticated()) {
         throw new Error('You must be logged in to view item details');
       }
-      
-      const itemsList = await Items.list();
+
+      const itemsList = await apiRequest('/api/items');
       currentItem = itemsList.find(i => i._id === itemId);
-      
+
       if (!currentItem) {
-        document.getElementById('itemDetailsList').innerHTML = 
+        document.getElementById('itemDetailsList').innerHTML =
           '<p style="color: red; text-align: center;">Item not found</p>';
         return;
       }
-      
+
       renderItemDetails(currentItem);
+
+      if (isAdmin()) {
+        document.getElementById('deleteItemBtn').style.display = 'inline-flex';
+      }
+
+      document.getElementById('editBrand').value = currentItem.brand || '';
+
       document.getElementById('editBrand').value = currentItem.brand || '';
       document.getElementById('editModel').value = currentItem.model || '';
       document.getElementById('editCategory').value = currentItem.category || '';
       document.getElementById('editStatus').value = currentItem.status || '';
-      
-      loadHistory();
-      loadUsers();
+
+      await loadHistory();
+
+      if (isAdmin()) {
+        await loadUsers();
+      }
+
       updateCheckoutCheckinUI();
     } catch (error) {
-      document.getElementById('itemDetailsList').innerHTML = 
+      document.getElementById('itemDetailsList').innerHTML =
         `<p style="color: red; text-align: center;">Error: ${error.message}</p>`;
-      handleError(error);
+
+      if (typeof handleError === 'function') {
+        handleError(error);
+      }
     }
   }
-  
+
   function renderItemDetails(item) {
     const detailsList = document.getElementById('itemDetailsList');
+
     detailsList.innerHTML = `
       <div class="detail-row">
         <span>Item ID</span>
@@ -165,7 +236,7 @@
       </div>
     `;
   }
-  
+
   function getStatusBadgeClass(status) {
     switch(status) {
       case 'Available': return 'success';
@@ -175,33 +246,34 @@
       default: return 'neutral';
     }
   }
-  
+
   async function loadHistory() {
     try {
-      const history = await Transactions.getHistory(itemId);
+      const history = await apiRequest(`/api/transactions/${itemId}/history`);
       renderHistory(history);
     } catch (error) {
-      document.getElementById('historyList').innerHTML = 
-        `<p style="color: red; text-align: center;">Error loading history</p>`;
+      document.getElementById('historyList').innerHTML =
+        `<p style="color: red; text-align: center;">Error loading history: ${error.message}</p>`;
+      document.getElementById('historyBadge').textContent = '0 Transactions';
     }
   }
-  
+
   function renderHistory(history) {
     const historyList = document.getElementById('historyList');
     document.getElementById('historyBadge').textContent = `${history.length} Transactions`;
-    
+
     if (history.length === 0) {
       historyList.innerHTML = '<p style="text-align: center;">No transaction history</p>';
       return;
     }
-    
+
     historyList.innerHTML = history.map(transaction => {
       const isCheckout = transaction.type === 'checkout';
       const dotClass = isCheckout ? 'checkout' : 'checkin';
       const actionText = isCheckout ? 'Checked out to' : 'Checked in from';
       const userName = transaction.user?.username || 'Unknown User';
       const date = new Date(transaction.createdAt).toLocaleDateString();
-      
+
       return `
         <article class="history-item">
           <div class="history-dot ${dotClass}"></div>
@@ -214,106 +286,203 @@
       `;
     }).join('');
   }
-  
+
   async function loadUsers() {
     try {
-      const usersList = await Users.list();
+      const usersList = await apiRequest('/api/users');
       allUsers = Array.isArray(usersList) ? usersList : (usersList.users || []);
-      
+
       const select = document.getElementById('assignedUser');
-      select.innerHTML = '<option selected disabled>Select a user</option>';
-      select.innerHTML += allUsers.map(user => 
-        `<option value="${user._id}">${user.username}</option>`
-      ).join('');
+      select.innerHTML = '<option selected disabled value="">Select a user</option>';
+      select.innerHTML += allUsers
+        .filter(user => user.isEnabled !== false)
+        .map(user => `<option value="${user._id}">${user.username}</option>`)
+        .join('');
     } catch (error) {
-      handleError(error);
+      console.error('Error loading users:', error);
     }
   }
-  
+
   function updateCheckoutCheckinUI() {
     const status = currentItem.status;
+
     const badge = document.getElementById('actionBadge');
     const message = document.getElementById('actionMessage');
     const button = document.getElementById('checkoutCheckinBtn');
-    
+    const form = document.getElementById('checkoutCheckinForm');
+    const userSelect = document.getElementById('assignedUser');
+    const userGroup = userSelect.closest('.form-group');
+
+    // reset defaults first
+    form.style.opacity = '1';
+    form.style.pointerEvents = 'auto';
+    button.disabled = false;
+
     if (status === 'Available') {
       badge.textContent = 'Available';
       badge.className = 'badge success';
       message.innerHTML = 'Since this item is currently <strong>Available</strong>, the main action is Check-out.';
       button.textContent = 'Check-out Item';
+
+      if (isAdmin()) {
+        userGroup.style.display = 'block';
+        userSelect.disabled = false;
+        userSelect.required = true;
+      } else {
+        userGroup.style.display = 'none';
+        userSelect.disabled = true;
+        userSelect.required = false;
+      }
+
     } else if (status === 'In-Use') {
       badge.textContent = 'In-Use';
       badge.className = 'badge primary';
       message.innerHTML = 'Since this item is currently <strong>In-Use</strong>, the main action is Check-in.';
       button.textContent = 'Check-in Item';
-    } else {
+
+      userGroup.style.display = 'none';
+      userSelect.disabled = true;
+      userSelect.required = false;
+
+    } else if (status === 'Maintenance' || status === 'Retired') {
       badge.textContent = status;
-      badge.className = 'badge muted';
+      badge.className = status === 'Maintenance' ? 'badge warning' : 'badge muted';
       message.innerHTML = `This item is currently <strong>${status}</strong> and cannot be checked in or out.`;
-      document.getElementById('checkoutCheckinForm').style.opacity = '0.5';
-      document.getElementById('checkoutCheckinForm').style.pointerEvents = 'none';
+      button.textContent = 'Unavailable';
+      button.disabled = true;
+
+      userGroup.style.display = 'none';
+      userSelect.disabled = true;
+      userSelect.required = false;
+
+    } else {
+      badge.textContent = status || 'Unknown';
+      badge.className = 'badge neutral';
+      message.innerHTML = 'Unknown item status.';
+      button.textContent = 'Unavailable';
+      button.disabled = true;
+
+      userGroup.style.display = 'none';
+      userSelect.disabled = true;
+      userSelect.required = false;
     }
   }
-  
+
   document.getElementById('editItemForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const itemData = {
       brand: document.getElementById('editBrand').value,
       model: document.getElementById('editModel').value,
       category: document.getElementById('editCategory').value,
       status: document.getElementById('editStatus').value
     };
-    
+
     try {
       if (!isAuthenticated()) {
         throw new Error('You must be logged in to edit an item');
       }
-      
-      await Items.update(itemId, itemData);
+
+      await apiRequest(`/api/items/${itemId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(itemData)
+      });
+
       showMessage('Item updated successfully!', 'success');
-      
+
       setTimeout(() => {
         window.location.reload();
-      }, 1500);
+      }, 1000);
     } catch (error) {
       handleError(error);
     }
   });
-  
+
   document.getElementById('checkoutCheckinForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    const userId = document.getElementById('assignedUser').value;
+
+    let userId;
+
+    if (isAdmin()) {
+      userId = document.getElementById('assignedUser').value;
+    } else {
+      const currentUser = getCurrentUser();
+      userId = currentUser?.id;
+    }
+
     const fileInput = document.getElementById('supportDoc');
-    
+
     try {
       if (!isAuthenticated()) {
         throw new Error('You must be logged in to perform checkout/checkin');
       }
-      
-      if (!userId) {
-        throw new Error('Please select a user');
+
+      const formData = new FormData();
+      formData.append('itemId', itemId);
+
+      if (fileInput.files[0]) {
+        formData.append('document', fileInput.files[0]);
       }
-      
-      const status = currentItem.status;
-      let response;
-      
-      if (status === 'Available') {
-        response = await Transactions.checkout(itemId, userId);
+
+      if (currentItem.status === 'Available') {
+        if (!userId) {
+          throw new Error('Please select a user');
+        }
+
+        formData.append('userId', userId);
+
+        await apiRequest('/api/transactions/checkout', {
+          method: 'POST',
+          body: formData
+        });
+
         showMessage('Item checked out successfully!', 'success');
-      } else if (status === 'In-Use') {
-        response = await Transactions.checkin(itemId);
+      } else if (currentItem.status === 'In-Use') {
+        await apiRequest('/api/transactions/checkin', {
+          method: 'POST',
+          body: formData
+        });
+
         showMessage('Item checked in successfully!', 'success');
+      } else {
+        throw new Error('This item cannot be checked in or out');
       }
-      
+
       setTimeout(() => {
         window.location.reload();
-      }, 1500);
+      }, 1000);
     } catch (error) {
       handleError(error);
     }
   });
-  
+
+  document.getElementById('deleteItemBtn').addEventListener('click', async () => {
+    if (!isAdmin()) {
+      handleError(new Error('Only admins can delete items'));
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this item? This is a soft delete.')) {
+      return;
+    }
+
+    try {
+      await apiRequest(`/api/items/${itemId}`, {
+        method: 'DELETE'
+      });
+
+      showMessage('Item deleted successfully!', 'success');
+
+      setTimeout(() => {
+        window.location.href = '/inventory';
+      }, 1000);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
   loadItemDetails();
 </script>

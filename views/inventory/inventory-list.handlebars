@@ -3,6 +3,7 @@
   heading="Inventory List"
   description="View all assets and open each item for more details."
   actionLabel="Add New Item"
+  actionHref="/inventory/create"
 }}
 
 <section class="panel">
@@ -48,17 +49,42 @@
 </section>
 
 <script>
+  function getToken() {
+    return localStorage.getItem('token');
+  }
+
+  async function apiRequest(url) {
+    const token = getToken();
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Request failed');
+    }
+
+    return data;
+  }
+
   let allItems = [];
   
   async function loadItems() {
     try {
-      const data = await Items.list();
+      const data = await apiRequest('/api/items');
       allItems = Array.isArray(data) ? data : (data.items || []);
       renderItems(allItems);
     } catch (error) {
       document.getElementById('itemTableBody').innerHTML = 
         `<tr><td colspan="6" style="text-align: center; color: red;">Error loading items: ${error.message}</td></tr>`;
-      handleError(error);
+      
+      if (typeof handleError === 'function') {
+        handleError(error);
+      }
     }
   }
   

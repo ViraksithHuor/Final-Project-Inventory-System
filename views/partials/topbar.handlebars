@@ -18,10 +18,12 @@
 
 <script>
   function loadUserInfo() {
-    const token = getToken();
+    const token = localStorage.getItem('token');
+
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
+
         document.getElementById('userName').textContent = payload.username || 'User';
         document.getElementById('userRole').textContent = payload.role || 'User';
         document.getElementById('userAvatar').textContent = (payload.username || 'U')[0].toUpperCase();
@@ -32,11 +34,22 @@
       window.location.href = '/login';
     }
   }
-  
-  function logout() {
-    Auth.logout();
+
+  async function logout() {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (e) {
+      console.error('Logout request failed:', e);
+    }
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+
     window.location.href = '/login';
   }
-  
+
   loadUserInfo();
 </script>

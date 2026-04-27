@@ -30,14 +30,6 @@
       />
     </div>
 
-    <div class="form-options">
-      <label class="checkbox-inline">
-        <input type="checkbox" name="remember" />
-        <span>Remember me</span>
-      </label>
-      <a href="#" class="text-link">Forgot password?</a>
-    </div>
-
     <button type="submit" class="btn btn-primary btn-block">Sign In</button>
 
   </form>
@@ -52,6 +44,10 @@
     
     try {
       const response = await Auth.login(usernameOrEmail, password);
+
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+
       showMessage('Login successful! Redirecting...', 'success');
       
       setTimeout(() => {

@@ -1,5 +1,5 @@
 // API utility functions
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = '/api';
 
 // Get JWT token from localStorage
 function getToken() {
@@ -41,7 +41,13 @@ async function apiCall(endpoint, method = 'GET', body = null) {
 
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, options);
-    const data = await response.json();
+    
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      throw { message: 'Invalid server response' };
+    }
 
     if (!response.ok) {
       throw {

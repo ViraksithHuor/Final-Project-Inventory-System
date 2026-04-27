@@ -25,7 +25,7 @@
     <div class="message-box success" id="successMessage" style="display: none; margin-top: 20px;">
       <strong>API Key Generated!</strong>
       <p>Copy this key now. You won't be able to see it again:</p>
-      <code id="generatedKey" style="display: block; word-break: break-all; padding: 10px; background: #f5f5f5; border-radius: 4px; margin-top: 10px;"></code>
+      <code id="generatedKey" class="api-key-display"></code>
     </div>
   </div>
 
@@ -42,84 +42,124 @@
 </section>
 
 <script>
+  function isAuthenticated() {
+    return !!localStorage.getItem('token');
+  }
+
+  function getToken() {
+    return localStorage.getItem('token');
+  }
+
+  async function apiRequest(url, options = {}) {
+    const token = getToken();
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Request failed');
+    }
+
+    return data;
+  }
+
   async function loadApiKeys() {
     try {
       if (!isAuthenticated()) {
         throw new Error('You must be logged in to manage API keys');
       }
-      
-      const data = await ApiKeys.list();
+
+      const data = await apiRequest('/api/keys');
       const keys = Array.isArray(data) ? data : (data.apiKeys || []);
       renderApiKeys(keys);
     } catch (error) {
-      document.getElementById('keysList').innerHTML = 
+      document.getElementById('keysList').innerHTML =
         `<p style="color: red; text-align: center;">Error loading API keys: ${error.message}</p>`;
-      handleError(error);
+
+      if (typeof handleError === 'function') {
+        handleError(error);
+      }
     }
   }
-  
+
   function renderApiKeys(keys) {
+    const activeKeys = keys.filter(key => key.isActive !== false);
     const keysList = document.getElementById('keysList');
-    document.getElementById('keyCountBadge').textContent = `${keys.length} Keys`;
-    
-    if (keys.length === 0) {
+
+    document.getElementById('keyCountBadge').textContent = `${activeKeys.length} Keys`;
+
+    if (activeKeys.length === 0) {
       keysList.innerHTML = '<p style="text-align: center;">No API keys yet</p>';
       return;
     }
-    
-    keysList.innerHTML = keys
-      .filter(key => key.isActive !== false)
-      .map(key => `
-        <article class="key-card">
-          <div>
-            <strong>${key.label || 'Unnamed Key'}</strong>
-            <p>Created: ${new Date(key.createdAt).toLocaleDateString()}</p>
-            ${key.purpose ? `<p style="font-size: 0.9em; color: #666;">${key.purpose}</p>` : ''}
-          </div>
-          <button class="btn btn-danger btn-sm" type="button" onclick="revokeKey('${key._id}')">Revoke</button>
-        </article>
-      `).join('');
+
+    keysList.innerHTML = activeKeys.map(key => `
+      <article class="key-card">
+        <div>
+          <strong>${key.label || 'Unnamed Key'}</strong>
+          <p>Created: ${new Date(key.createdAt).toLocaleDateString()}</p>
+          ${key.purpose ? `<p style="font-size: 0.9em; color: #666;">${key.purpose}</p>` : ''}
+        </div>
+        <button class="btn btn-danger btn-sm" type="button" onclick="revokeKey('${key._id}')">Revoke</button>
+      </article>
+    `).join('');
   }
-  
+
   async function revokeKey(keyId) {
     if (!confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) {
       return;
     }
-    
+
     try {
-      await ApiKeys.revoke(keyId);
+      await apiRequest(`/api/keys/${keyId}`, {
+        method: 'DELETE'
+      });
+
       showMessage('API key revoked successfully!', 'success');
       loadApiKeys();
     } catch (error) {
       handleError(error);
     }
   }
-  
+
   document.getElementById('generateKeyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    const keyLabel = document.getElementById('keyLabel').value;
-    const keyPurpose = document.getElementById('keyPurpose').value;
-    
+
+    const keyLabel = document.getElementById('keyLabel').value.trim();
+    const keyPurpose = document.getElementById('keyPurpose').value.trim();
+
     try {
       if (!isAuthenticated()) {
         throw new Error('You must be logged in to generate an API key');
       }
-      
-      const response = await ApiKeys.generate(keyLabel, keyPurpose);
-      
+
+      const response = await apiRequest('/api/keys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          label: keyLabel,
+          purpose: keyPurpose
+        })
+      });
+
       document.getElementById('generatedKey').textContent = response.apiKey;
       document.getElementById('successMessage').style.display = 'block';
-      
       document.getElementById('generateKeyForm').reset();
-      
-      setTimeout(() => {
-        loadApiKeys();
-      }, 2000);
+
+      loadApiKeys();
     } catch (error) {
       handleError(error);
     }
   });
-  
+
   loadApiKeys();
 </script>

@@ -41,7 +41,27 @@
 </section>
 
 <script>
+  function isAuthenticated() {
+    return !!localStorage.getItem('token');
+  }
+
   let allUsers = [];
+
+  const Users = {
+    list: async () => {
+      const token = localStorage.getItem('token');
+
+      const res = await fetch('/api/users', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) throw new Error('Failed to fetch users');
+
+      return res.json();
+    }
+  };
   
   async function loadUsers() {
     try {

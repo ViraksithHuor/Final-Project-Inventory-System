@@ -1,7 +1,7 @@
 {{> page-header
   eyebrow="Administration"
   heading="Create New Account"
-  description="Fill in the account information below. This is a UI skeleton only."
+  description="Create a new admin or technician account."
 }}
 
 <section class="panel form-panel narrow">
@@ -17,7 +17,7 @@
     </div>
 
     <div class="form-group">
-      <label for="password">Temporary Password</label>
+      <label for="password">Password</label>
       <input type="password" id="password" name="password" placeholder="Enter password" required />
     </div>
 
@@ -29,11 +29,6 @@
       </select>
     </div>
 
-    <div class="form-group form-group--full">
-      <label for="notes">Notes</label>
-      <textarea id="notes" name="notes" rows="4" placeholder="Optional note for UI demonstration"></textarea>
-    </div>
-
     <div class="form-actions form-group--full">
       <button type="submit" class="btn btn-primary">Create Account</button>
       <button type="reset" class="btn btn-secondary">Clear</button>
@@ -42,26 +37,48 @@
 </section>
 
 <script>
+  function isAuthenticated() {
+    return !!localStorage.getItem('token');
+  }
+
   document.getElementById('createUserForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    const username = document.getElementById('username').value;
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const role = document.getElementById('role').value;
-    
+
+    const token = localStorage.getItem('token');
+
+    const body = {
+      username: document.getElementById('username').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value,
+      role: document.getElementById('role').value
+    };
+
     try {
-      if (!isAuthenticated()) {
+      if (!token) {
         throw new Error('You must be logged in to create a user');
       }
-      
-      const response = await Users.create(username, email, password, role);
+
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create user');
+      }
+
       showMessage('User created successfully!', 'success');
       document.getElementById('createUserForm').reset();
-      
+
       setTimeout(() => {
         window.location.href = '/admin/users';
-      }, 1500);
+      }, 1000);
     } catch (error) {
       handleError(error);
     }

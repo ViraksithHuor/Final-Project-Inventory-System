@@ -40,36 +40,62 @@
 
 <script>
   const userId = window.location.pathname.split('/').pop();
-  
+
+  function isAuthenticated() {
+    return !!localStorage.getItem('token');
+  }
+
+  async function apiRequest(url, options = {}) {
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Request failed');
+    }
+
+    return data;
+  }
+
   async function loadUserDetails() {
     try {
       if (!isAuthenticated()) {
         throw new Error('You must be logged in to view user details');
       }
-      
-      // Note: Backend would need a GET /api/users/:id endpoint
-      // For now, we'll get the list and find the user
-      const usersList = await Users.list();
+
+      const usersList = await apiRequest('/api/users');
       const user = usersList.find(u => u._id === userId);
-      
+
       if (!user) {
-        document.getElementById('userDetailsList').innerHTML = 
+        document.getElementById('userDetailsList').innerHTML =
           '<p style="color: red; text-align: center;">User not found</p>';
         return;
       }
-      
+
       renderUserDetails(user);
       document.getElementById('detailRole').value = user.role;
       document.getElementById('isEnabled').value = user.isEnabled.toString();
     } catch (error) {
-      document.getElementById('userDetailsList').innerHTML = 
+      document.getElementById('userDetailsList').innerHTML =
         `<p style="color: red; text-align: center;">Error: ${error.message}</p>`;
-      handleError(error);
+
+      if (typeof handleError === 'function') {
+        handleError(error);
+      }
     }
   }
-  
+
   function renderUserDetails(user) {
     const detailsList = document.getElementById('userDetailsList');
+
     detailsList.innerHTML = `
       <div class="detail-row">
         <span>Username</span>
@@ -93,30 +119,43 @@
       </div>
     `;
   }
-  
+
   document.getElementById('editUserForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const role = document.getElementById('detailRole').value;
     const isEnabled = document.getElementById('isEnabled').value === 'true';
-    
+
     try {
       if (!isAuthenticated()) {
         throw new Error('You must be logged in to update a user');
       }
-      
-      await Users.updateRole(userId, role);
-      await Users.updateStatus(userId, isEnabled);
-      
+
+      await apiRequest(`/api/users/${userId}/role`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ role })
+      });
+
+      await apiRequest(`/api/users/${userId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ isEnabled })
+      });
+
       showMessage('User updated successfully!', 'success');
-      
+
       setTimeout(() => {
         window.location.href = '/admin/users';
-      }, 1500);
+      }, 1000);
     } catch (error) {
       handleError(error);
     }
   });
-  
+
   loadUserDetails();
 </script>
