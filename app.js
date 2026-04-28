@@ -25,7 +25,7 @@ app.use(cors({
 
 app.use(rateLimit({
   windowMs: 60 * 1000,
-  max: 100
+  max: 20
 }));
 
 // Handlebars setup
